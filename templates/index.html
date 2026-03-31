@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Timetable Generator</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <h1>Admin Panel - Timetable Generator</h1>
+
+    <div class="main-container">
+      <div class="setup-column">
+        <div class="card">
+          <h3>1. Upload Data</h3>
+          <p>Upload your combined list of lecturers and subjects.</p>
+          <div>
+            <label>Combined List (CSV):</label>
+            <!-- name="file" is required so Flask sees it as request.files['file'] -->
+            <input
+              type="file"
+              id="combinedFile"
+              name="file"
+              accept=".csv,.xlsx,.xls"
+            />
+            <button type="button" onclick="uploadCombinedFile()">Upload</button>
+          </div>
+          <div
+            id="upload-status"
+            style="margin-top: 10px; font-size: 0.9em"
+          ></div>
+
+          <hr />
+          <div class="delete-all-container">
+            <button
+              id="clear-lecturers-btn"
+              class="delete-btn-full"
+              type="button"
+            >
+              Clear All Lecturers
+            </button>
+            <button
+              id="clear-subjects-btn"
+              class="delete-btn-full"
+              type="button"
+            >
+              Clear All Subjects
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>2. Timetable Setup</h3>
+          <form id="slot-form">
+            <input type="hidden" id="slot-edit-id" />
+
+            <label>Period Name:</label>
+            <input
+              type="text"
+              id="slot-name"
+              placeholder="e.g., Period 1, Lunch"
+              required
+            />
+            <label>Start Time:</label>
+            <input type="time" id="slot-start" required />
+            <label>End Time:</label>
+            <input type="time" id="slot-end" required />
+            <label
+              ><input type="checkbox" id="slot-is-break" /> Is this a
+              break?</label
+            >
+
+            <button type="submit" id="slot-submit-btn">Add Time Slot</button>
+
+            <button
+              type="button"
+              id="slot-cancel-btn"
+              class="cancel-btn"
+              style="display: none"
+            >
+              Cancel
+            </button>
+          </form>
+
+          <div class="data-list-container">
+            <strong>Defined Slots:</strong>
+            <ul id="slot-list"></ul>
+          </div>
+          <hr />
+
+          <form id="section-form">
+            <label>Year:</label>
+            <input
+              type="number"
+              id="section-year"
+              placeholder="e.g., 1"
+              min="1"
+              max="8"
+              required
+            />
+            <label>Section:</label>
+            <input
+              type="text"
+              id="section-name"
+              placeholder="e.g., A"
+              required
+            />
+            <label>Department:</label>
+            <input type="text" id="section-dept" value="ISE" required />
+            <label>Class Adviser:</label>
+            <input
+              type="text"
+              id="section-adviser"
+              placeholder="e.g., Dr. Smith"
+            />
+            <button type="submit">Add Section</button>
+          </form>
+          <div class="data-list-container">
+            <strong>Defined Sections:</strong>
+            <ul id="section-list"></ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>3. Assign Subjects & Rules</h3>
+          <form id="assignment-form">
+            <label>Select Section:</label>
+            <select id="assign-section" required></select>
+            <label>Select Subject:</label>
+            <select id="assign-subject" required></select>
+            <label>Select Lecturer:</label>
+            <select id="assign-lecturer" required></select>
+
+            <label>Lectures per Week (Count):</label>
+            <input
+              type="number"
+              id="assign-weekly-count"
+              min="1"
+              value="3"
+              required
+            />
+            <label>Max Lectures per Day:</label>
+            <input
+              type="number"
+              id="assign-max-per-day"
+              min="1"
+              value="1"
+              required
+            />
+
+            <button type="submit">Create Assignment</button>
+          </form>
+          <div class="data-list-container">
+            <strong>Defined Assignments:</strong>
+            <ul id="assignment-list"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="timetable-column">
+        <div class="card">
+          <h3>4. View & Generate Timetable</h3>
+          <div class="tab-container" id="class-tabs-container">
+            <div class="tab-info">Setup sections to see tabs</div>
+          </div>
+
+          <div id="timetable-grid" class="grid-container"></div>
+
+          <div class="timetable-actions">
+            <button
+              id="generateBtn"
+              class="generate-button"
+              type="button"
+              style="flex: 1; min-width: 200px"
+            >
+              Generate Timetable
+            </button>
+            <button
+              id="regenerateBtn"
+              class="generate-button"
+              type="button"
+              style="flex: 1; min-width: 200px; background-color: #ff9800"
+            >
+              Regenerate New Version
+            </button>
+            <button
+              id="loadBtn"
+              class="generate-button"
+              type="button"
+              style="flex: 1; min-width: 200px; background-color: #28a745"
+            >
+              Load Saved Timetable
+            </button>
+            <button
+              id="clashBtn"
+              class="generate-button"
+              type="button"
+              style="
+                flex: 1;
+                min-width: 200px;
+                background-color: #ffc107;
+                color: black;
+              "
+            >
+              Check All Clashes
+            </button>
+            <button
+              id="detailedClashBtn"
+              class="generate-button"
+              type="button"
+              style="flex: 1; min-width: 200px; background-color: #17a2b8"
+            >
+              Detailed Clash Analysis
+            </button>
+            <button
+              id="pdfBtn"
+              class="generate-button"
+              type="button"
+              style="flex: 1; min-width: 200px; background-color: #dc3545"
+            >
+              Download PDF
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>5. Generation Report & Clash Detection</h3>
+          <div id="result-container">
+            <pre id="timetable-output">Click 'Generate' to see results.</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fix-slot-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h3 id="modal-title">Fix Slot</h3>
+        <p id="modal-subtitle">Select subject and lecturer for this slot.</p>
+
+        <label for="subject-select">Subject:</label>
+        <select id="subject-select" class="modal-select"></select>
+
+        <label for="lecturer-select">Lecturer:</label>
+        <select id="lecturer-select" class="modal-select"></select>
+
+        <div class="divider-or">OR</div>
+
+        <label for="custom-label-input">Fix with Custom Label:</label>
+        <input
+          type="text"
+          id="custom-label-input"
+          class="modal-input"
+          placeholder="e.g., Library, Sports, Mentoring"
+        />
+        <button id="save-fixed-slot" class="modal-button" type="button">
+          Save
+        </button>
+        <button
+          id="remove-fixed-slot"
+          class="modal-button"
+          style="background: #dc3545; margin-top: 10px"
+        >
+          Remove Fixed Slot
+        </button>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>

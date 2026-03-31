@@ -1,0 +1,97 @@
+<!-- templates/timetable_view.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Timetable - {{ section.display_name }}</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      /* minimal adjustments for server view to match PDF layout */
+      .pdf-timetable {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      .pdf-timetable th,
+      .pdf-timetable td {
+        border: 1px solid #444;
+        padding: 8px;
+        vertical-align: middle;
+        text-align: center;
+      }
+      .pdf-timetable thead th {
+        background: #6c757d;
+        color: #fff;
+      }
+      .pdf-timetable td.break {
+        font-style: italic;
+        color: #6c757d;
+        background: #ececec;
+      }
+      .pdf-subject {
+        display: block;
+        font-weight: 700;
+      }
+      .pdf-lecturer {
+        display: block;
+        font-size: 0.9em;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="max-width: 1100px; margin: 20px auto">
+      <h2 style="text-align: center">{{ section.display_name }}</h2>
+      <table class="pdf-timetable">
+        <thead>
+          <tr>
+            <th class="time-header">Time / Day</th>
+            {% for d in days %}
+            <th>{{ d }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for slot in all_slots %}
+          <tr>
+            <td class="day-cell" style="font-weight: 700">
+              {{ slot.display_name.split('(')[1].replace(')','') if '(' in
+              slot.display_name else slot.display_name }}
+            </td>
+            {% for d in days %} {% set cell = None %} {% if section.display_name
+            in timetable_data and d in timetable_data[section.display_name] and
+            slot.display_name in timetable_data[section.display_name][d] %} {%
+            set cell =
+            timetable_data[section.display_name][d][slot.display_name] %} {%
+            elif d in timetable_data and slot.display_name in timetable_data[d]
+            %} {% set cell = timetable_data[d][slot.display_name] %} {% endif %}
+            <td
+              class="{% if cell=='BREAK' %}break{% elif cell and cell.is_fixed %}fixed{% endif %}"
+            >
+              {% if cell == 'BREAK' %}
+              <strong>BREAK</strong>
+              {% elif cell is iterable and cell|length >= 3 and cell is not
+              string %} {% set subj = get_subject(cell[1]) %} {% set lect =
+              get_lecturer(cell[2]) %} {% if subj and lect %}
+              <span class="pdf-subject">{{ subj.name }}</span>
+              <span class="pdf-lecturer">({{ lect.name }})</span>
+              {% endif %} {% elif cell is mapping %} {% if cell.custom_label %}
+              <strong>{{ cell.custom_label }}</strong>
+              {% elif cell.subject_id and cell.lecturer_id %} {% set subj =
+              get_subject(cell.subject_id) %} {% set lect =
+              get_lecturer(cell.lecturer_id) %} {% if subj and lect %}
+              <span class="pdf-subject">{{ subj.name }}</span>
+              <span class="pdf-lecturer">({{ lect.name }})</span>
+              {% endif %} {% endif %} {% else %} &nbsp; {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
